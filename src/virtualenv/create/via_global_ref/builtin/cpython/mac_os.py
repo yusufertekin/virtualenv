@@ -5,11 +5,12 @@ import os
 import struct
 import subprocess
 from abc import ABCMeta, abstractmethod
+from collections import OrderedDict
 from textwrap import dedent
 
 from six import add_metaclass, text_type
 
-from virtualenv.create.via_global_ref.builtin.ref import ExePathRefToDest, PathRefToDest, RefMust
+from virtualenv.create.via_global_ref.builtin.ref import ExePathRefToDest, PathRefToDest, RefMust, RefWhen
 from virtualenv.info import IS_MAC_ARM64
 from virtualenv.util.path import Path
 from virtualenv.util.six import ensure_text
@@ -52,11 +53,14 @@ class CPythonmacOsFramework(CPython):
     @classmethod
     def _executables(cls, interpreter):
         for _, targets, must, when in super(CPythonmacOsFramework, cls)._executables(interpreter):
-            # Make sure we use the embedded interpreter inside the framework, even if sys.executable points to the
-            # stub executable in ${sys.prefix}/bin.
-            # See http://groups.google.com/group/python-virtualenv/browse_thread/thread/17cab2f85da75951
-            fixed_host_exe = Path(interpreter.prefix) / "Resources" / "Python.app" / "Contents" / "MacOS" / "Python"
-            yield fixed_host_exe, targets, must, when
+            host_exe = Path(interpreter.system_executable)
+            major, minor = interpreter.version_info.major, interpreter.version_info.minor
+            targets = OrderedDict(
+                (i, None) for i in ["python", "python{}".format(major), "python{}.{}".format(major, minor), host_exe.name]
+            )
+            must = RefMust.COPY if interpreter.version_info.major == 2 else RefMust.NA
+            yield host_exe, list(targets.keys()), must, RefWhen.ANY
+
 
     @abstractmethod
     def current_mach_o_image_path(self):
