@@ -32,14 +32,14 @@ class CPythonmacOsFramework(CPython):
             yield src
         # add a symlink to the host python image
         exe = cls.image_ref(interpreter)
-        ref = PathRefToDest(exe, dest=lambda self, _: self.dest / ".Python", must=RefMust.SYMLINK)
+        ref = PathRefToDest(exe, dest=lambda self, _: self.dest / "Python", must=RefMust.SYMLINK)
         yield ref
 
     def create(self):
         super(CPythonmacOsFramework, self).create()
 
         # change the install_name of the copied python executables
-        target = "@executable_path/../.Python"
+        target = "@executable_path/../Python"
         current = self.current_mach_o_image_path()
         for src in self._sources:
             if isinstance(src, ExePathRefToDest):
